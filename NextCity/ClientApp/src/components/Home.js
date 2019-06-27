@@ -3,11 +3,12 @@ import {Tile as TileLayer, Vector as VectorLayer} from 'ol/layer.js';
 import {OSM, Vector as VectorSource} from 'ol/source.js';
 import Map from 'ol/Map.js';
 import View from 'ol/View.js';
-
 import Overlay from 'ol/Overlay.js';
+import {Modal, Button, ModalHeader, ModalBody, ModalFooter} from 'reactstrap'
+
 import './Home.css'
 import 'ol/ol.css';
-import {Modal, Button, ModalHeader, ModalBody, ModalFooter} from 'reactstrap'
+
 
 
 export class Home extends Component {
@@ -27,70 +28,35 @@ export class Home extends Component {
     this.handleMapClick = this.handleMapClick.bind(this)
     this.handleChange = this.handleChange.bind(this)
     this.handleSubmit = this.handleSubmit.bind(this)
-    this.fetchData = this.fetchData.bind(this)
-    this.showPopups = this.showPopups.bind(this)
+    this.fetchData = this.fetchData.bind(this)   
+    this.updateOverlays = this.updateOverlays.bind(this) 
   }    
+
 
   fetchData(){
     fetch('api/UserRequest/GetUserRequests')
           .then(response => response.json())
           .then(data => {
-              this.setState({ userRequests: data });
-              this.showPopups()
+              this.setState({ userRequests: data });    
+              this.updateOverlays()          
           });
   }
-
-  showPopups(){    
-    for (let i = 0; i < this.state.userRequests.length; ++i){
-      let ur = this.state.userRequests[i]     
-      console.log('ur',ur)  
-   
-      let root = document.getElementById('component-root')
-      
-      let popup = document.createElement('div')
-      popup.classList.add('ol-popup')
-      
-      let popupContent = document.createElement('div')
-      popupContent.innerHTML = '<div><code>' + ur.requestHeader +'</code></div>'
-
-      popup.appendChild(popupContent)        
-      root.appendChild(popup)
-
-      console.log(root)
-      /**
-       * Create an overlay to anchor the popup to the map.
-       */
-      var overlay = new Overlay({
-        element: popup,
-        autoPan: true,
-        autoPanAnimation: {
-          duration: 250
-        }
-      });
-      overlay.setPosition([ur.x, ur.y]);
-      this.map.addOverlay(overlay)
-     
-      console.log('map',this.map)
-    }
-    
-
-  }
+  
   
   componentDidMount() {    
       
-    const vectorSource = new VectorSource({
-      features: []
-    });    
-    const vectorLayer = new VectorLayer({
-        source: vectorSource ,            
-    });   
+    // const vectorSource = new VectorSource({
+    //   features: []
+    // });    
+    // const vectorLayer = new VectorLayer({
+    //     source: vectorSource ,            
+    // });   
 
     this.map = new Map({        
       layers: [
           new TileLayer({
               source: new OSM()
-          }),
-          vectorLayer
+          })
       ],               
       overlays:[],
       target: 'map-container',
@@ -108,6 +74,54 @@ export class Home extends Component {
 
     this.fetchData()
   }
+
+  updateOverlays(){ 
+    //console.log('update-overlays')  
+    //this.map.getOverlays().clear()
+    // for (let i = 0; i < this.state.userRequests.length; ++i){
+    //     let ur = this.state.userRequests[i]
+    //     let element = document.getElementById(`popup-${ur.id}`)
+    //     //console.log(element)
+        
+    //     let overlay = new Overlay({
+    //       element: element,
+    //       autoPan: false,
+    //       // autoPanAnimation: {
+    //       //   duration: 250
+    //       // }
+    //     });
+    //     overlay.setPosition([ur.x, ur.y]);
+    //     this.map.addOverlay(overlay) 
+    // }    
+    // console.log(this.map.getOverlays())
+
+    this.map.getOverlays().clear()
+    for (let i = 0; i < this.state.userRequests.length; ++i){
+      let ur = this.state.userRequests[i]          
+   
+      let root = document.getElementById('component-root')
+      
+      let popup = document.createElement('div')
+      popup.classList.add('ol-popup')
+      
+      let popupContent = document.createElement('div')
+      popupContent.innerHTML = '<div><code>' + ur.requestHeader +'</code></div>'
+
+      popup.appendChild(popupContent)        
+      root.appendChild(popup)
+     
+      var overlay = new Overlay({
+        element: popup,
+        autoPan: true,
+        autoPanAnimation: {
+          duration: 250
+        }
+      });
+      overlay.setPosition([ur.x, ur.y]);
+      this.map.addOverlay(overlay)     
+     
+    }
+  }  
   
 
   toggle(){
@@ -156,6 +170,7 @@ export class Home extends Component {
     }
   }
 
+
   render () {
     return (
       <div id='component-root'>
@@ -177,6 +192,7 @@ export class Home extends Component {
               <label>Описание заявки: </label>
               <input type="text" name="requestBody" value={this.state.requestBody} onChange={this.handleChange} />
               <br />
+
               
            
             </ModalBody>
@@ -186,7 +202,8 @@ export class Home extends Component {
             </ModalFooter>
         </Modal> 
 
-        <div id='map-container'></div>        
+        <div id='map-container'></div>     
+           
       </div>
     );
   }

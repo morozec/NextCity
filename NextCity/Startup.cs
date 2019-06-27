@@ -61,7 +61,6 @@ namespace NextCity
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseSpaStaticFiles();
-            app.SeedData(Configuration); //TODO: разобраться с миграциями
            
 
             app.UseMvc(routes =>
