@@ -27,5 +27,11 @@ namespace NextCity.Controllers
         {
             await _userRequestService.AddUserRequest(userRequestVm);
         }
+
+        [HttpGet("[action]/{id}")]
+        public async Task<UserRequestViewModel> GetUserRequest(int id)
+        {
+            return await _userRequestService.GetUserRequest(id);
+        }
     }
 }

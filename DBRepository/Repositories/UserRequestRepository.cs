@@ -28,5 +28,13 @@ namespace DBRepository.Repositories
                 await context.SaveChangesAsync();
             }
         }
+
+        public async Task<UserRequest> GetUserRequest(int id)
+        {
+            using (var context = RepositoryContextFactory.CreateDbContext(ConnectionString))
+            {
+                return await context.UserRequests.FirstOrDefaultAsync(ur => ur.Id == id);
+            }
+        }
     }
 }

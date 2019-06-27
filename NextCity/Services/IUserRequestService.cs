@@ -8,5 +8,6 @@ namespace NextCity.Services
     {
         Task<List<UserRequestViewModel>> GetUserRequests();
         Task AddUserRequest(UserRequestViewModel userRequest);
+        Task<UserRequestViewModel> GetUserRequest(int id);
     }
 }

@@ -8,5 +8,6 @@ namespace DBRepository.Repositories
     {
         Task<List<UserRequest>> GetUserRequests();
         Task AddUserRequest(UserRequest userRequest);
+        Task<UserRequest> GetUserRequest(int id);
     }
 }

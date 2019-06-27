@@ -4,7 +4,8 @@ import {OSM, Vector as VectorSource} from 'ol/source.js';
 import Map from 'ol/Map.js';
 import View from 'ol/View.js';
 import Overlay from 'ol/Overlay.js';
-import {Modal, Button, ModalHeader, ModalBody, ModalFooter} from 'reactstrap'
+
+import UserRequestModal from './UserRequestModal'
 
 import './Home.css'
 import 'ol/ol.css';
@@ -15,14 +16,15 @@ export class Home extends Component {
   constructor(props){
     super(props)
     this.state = {
-      isNewUserRequestShown:false,
+      isUserRequestFromShown:false,
+      isNewUserRequest:true,
       userName:'',
       userTel:'',
       requestHeader:'',
       requestBody:'',
       X:0,
       Y:0,
-      userRequests:[]
+      userRequests:[]      
     }
     this.toggle = this.toggle.bind(this)
     this.handleMapClick = this.handleMapClick.bind(this)
@@ -103,6 +105,20 @@ export class Home extends Component {
       
       let popup = document.createElement('div')
       popup.classList.add('ol-popup')
+      popup.onclick = () => {
+        fetch(`api/UserRequest/GetUserRequest/${ur.id}`)
+          .then(response => response.json())
+          .then(data => {
+            this.setState({
+              userName:data.userName, 
+              userTel:data.userTel, 
+              requestHeader:data.requestHeader, 
+              requestBody:data.requestBody, 
+              isUserRequestFromShown:true,
+              isNewUserRequest:false
+            })            
+          });        
+      } 
       
       let popupContent = document.createElement('div')
       popupContent.innerHTML = '<div><code>' + ur.requestHeader +'</code></div>'
@@ -122,16 +138,20 @@ export class Home extends Component {
      
     }
   }  
+
+  // handlePopupClick(ev){
+  //   console.dir
+  // }
   
 
   toggle(){
     this.setState(prevState => ({
-      isNewUserRequestShown: !prevState.isNewUserRequestShown
+      isUserRequestFromShown: !prevState.isUserRequestFromShown
     }))        
   }
 
   handleMapClick(coordinate){
-    this.setState({isNewUserRequestShown:true, X:coordinate[0], Y:coordinate[1]})
+    this.setState({isUserRequestFromShown:true, userName:'', userTel:'', requestHeader:'', requestBody:'', X:coordinate[0], Y:coordinate[1], isNewUserRequest:true})
   }
 
   handleChange(event){
@@ -139,9 +159,8 @@ export class Home extends Component {
       this.setState({[name]:value})
   }
 
-  handleSubmit(event){
-    this.addUserRequest(this.state.userName, this.state.userTel, this.state.requestHeader, this.state.requestBody, this.state.X, this.state.Y) 
-    event.preventDefault()
+  handleSubmit(){   
+    this.addUserRequest(this.state.userName, this.state.userTel, this.state.requestHeader, this.state.requestBody, this.state.X, this.state.Y)    
   }
 
   addUserRequest(userName, userTel, requestHeader, requestBody, x, y){
@@ -173,37 +192,19 @@ export class Home extends Component {
 
   render () {
     return (
-      <div id='component-root'>
-        <Modal isOpen={this.state.isNewUserRequestShown} toggle={this.toggle} onClosed={this.handleClose}>
-            <ModalHeader toggle={this.toggle}>
-                Новая заявка
-            </ModalHeader>
-            <ModalBody>
-            
-              <label>Имя: </label>
-              <input type="text" name="userName" value={this.state.userName} onChange={this.handleChange} />
-              <br />
-              <label>Телефон для связи: </label>
-              <input type="text" name="userTel" value={this.state.userTel} onChange={this.handleChange} />
-              <br />
-              <label>Тема заявки: </label>
-              <input type="text" name="requestHeader" value={this.state.requestHeader} onChange={this.handleChange} />
-              <br />
-              <label>Описание заявки: </label>
-              <input type="text" name="requestBody" value={this.state.requestBody} onChange={this.handleChange} />
-              <br />
-
-              
-           
-            </ModalBody>
-            <ModalFooter>                
-                <Button color="secondary" onClick={this.toggle}>Отмена</Button>    
-                <Button color="primary" onClick={this.handleSubmit}>Создать заявку</Button>                 
-            </ModalFooter>
-        </Modal> 
-
-        <div id='map-container'></div>     
-           
+      <div id='component-root'>  
+        <UserRequestModal 
+          isUserRequestFromShown={this.state.isUserRequestFromShown} 
+          userName={this.state.userName} 
+          userTel={this.state.userTel} 
+          requestHeader={this.state.requestHeader} 
+          requestBody={this.state.requestBody} 
+          toggle={this.toggle} 
+          handleChange={this.handleChange} 
+          handleSubmit={this.handleSubmit} 
+          isNewUserRequest={this.state.isNewUserRequest}
+        />
+        <div id='map-container'></div>                      
       </div>
     );
   }

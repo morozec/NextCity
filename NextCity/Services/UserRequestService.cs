@@ -31,5 +31,13 @@ namespace NextCity.Services
             var userRequest = _mapper.Map<UserRequestViewModel, UserRequest>(userRequestVm);
             await _userRequestRepository.AddUserRequest(userRequest);
         }
+
+        public async Task<UserRequestViewModel> GetUserRequest(int id)
+        {
+            var userRequest = await _userRequestRepository.GetUserRequest(id);
+            var userRequestVm =
+                userRequest != null ? _mapper.Map<UserRequest, UserRequestViewModel>(userRequest) : null;
+            return userRequestVm;
+        }
     }
 }
