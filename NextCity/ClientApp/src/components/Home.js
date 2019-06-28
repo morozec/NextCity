@@ -11,6 +11,7 @@ import Select from 'ol/interaction/Select.js';
 
 import UserRequestModal from './UserRequestModal'
 import {EPSG3857_X_MIN, EPSG3857_Y_MIN, EPSG3857_X_MAX, EPSG3857_Y_MAX} from './constants'
+import {useAuth0} from "../react-auth0-wrapper"
 
 import './Home.css'
 import 'ol/ol.css';
@@ -39,7 +40,7 @@ export class Home extends Component {
     this.handleSubmit = this.handleSubmit.bind(this)
     this.fetchData = this.fetchData.bind(this)   
     this.updateOverlays = this.updateOverlays.bind(this) 
-   
+    
   }    
 
 
@@ -103,6 +104,12 @@ export class Home extends Component {
       let coordinate = evt.coordinate
       let featuresCount = 0
       map.forEachFeatureAtPixel(evt.pixel, function(feature, layer){
+        // if (!this.isAuthenticated){
+        //   content.innerText = "Необходима авторизация для просмотра заявок."
+        //   overlay.setPosition(coordinate)
+        //   return
+        // }
+
         featuresCount++
         const innerFeatures = feature.getProperties().features
         if (innerFeatures.length > 1){

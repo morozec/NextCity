@@ -1,38 +1,27 @@
 import React, { Component } from 'react';
 import { Collapse, Container, Navbar, NavbarBrand, NavbarToggler } from 'reactstrap';
 import { Link } from 'react-router-dom';
+import {useAuth0} from "../react-auth0-wrapper"
 import './NavMenu.css';
 
-export class NavMenu extends Component {
-  static displayName = NavMenu.name;
+const NavMenu = () => {
+  const { isAuthenticated, loginWithRedirect, logout } = useAuth0();
 
-  constructor (props) {
-    super(props);
+  return (
+    <div>
+      {!isAuthenticated && (
+        <button
+          onClick={() =>
+            loginWithRedirect({})
+          }
+        >
+          Log in
+        </button>
+      )}
 
-    this.toggleNavbar = this.toggleNavbar.bind(this);
-    this.state = {
-      collapsed: true
-    };
-  }
+      {isAuthenticated && <button onClick={() => logout()}>Log out</button>}
+    </div>
+  );
+};
 
-  toggleNavbar () {
-    this.setState({
-      collapsed: !this.state.collapsed
-    });
-  }
-
-  render () {
-    return (
-      <header>
-        <Navbar className="navbar-expand-sm navbar-toggleable-sm ng-white border-bottom box-shadow mb-3" light>
-          <Container>
-            <NavbarBrand tag={Link} to="/">NextCity</NavbarBrand>
-            <NavbarToggler onClick={this.toggleNavbar} className="mr-2" />
-            <Collapse className="d-sm-inline-flex flex-sm-row-reverse" isOpen={!this.state.collapsed} navbar>             
-            </Collapse>
-          </Container>
-        </Navbar>
-      </header>
-    );
-  }
-}
+export default NavMenu;
