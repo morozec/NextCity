@@ -31,22 +31,22 @@ export default class UserRequestModal extends React.Component{
                         <FormGroup>
                             <Label for="userName">Имя</Label> 
                             <Input type="text" name="userName" id="userName" disabled={!this.props.isNewUserRequest}
-                                value={this.props.userName} onChange={this.props.handleChange} placeholder="Введите свое имя" />
+                                value={this.props.userName} onChange={(e) => this.props.setUserName(e.target.value)} placeholder="Введите свое имя" />
                         </FormGroup>
                         <FormGroup>
                             <Label for="userTel">Телефон</Label> 
                             <Input type="tel" name="userTel" id="userTel" disabled={!this.props.isNewUserRequest}
-                                value={this.props.userTel} onChange={this.props.handleChange} placeholder="Введите свой номер телефона" />
+                                value={this.props.userTel} onChange={(e) => this.props.setUserTel(e.target.value)} placeholder="Введите свой номер телефона" />
                         </FormGroup>
                         <FormGroup>
                             <Label for="requestHeader">Название заявки</Label> 
                             <Input type="text" name="requestHeader" id="requestHeader" disabled={!this.props.isNewUserRequest}
-                                value={this.props.requestHeader} onChange={this.props.handleChange} placeholder="Введите название заявки" />
+                                value={this.props.requestHeader} onChange={(e) => this.props.setRequestHeader(e.target.value)} placeholder="Введите название заявки" />
                         </FormGroup>
                         <FormGroup>
                             <Label for="requestBody">Описание заявки</Label> 
                             <Input type="textarea" name="requestBody" id="requestBody" disabled={!this.props.isNewUserRequest}
-                                value={this.props.requestBody} onChange={this.props.handleChange} placeholder="Опишите свою заявку" />
+                                value={this.props.requestBody} onChange={(e) => this.props.setRequestBody(e.target.value)} placeholder="Опишите свою заявку" />
                         </FormGroup>                      
                     </Form>                   
                    
