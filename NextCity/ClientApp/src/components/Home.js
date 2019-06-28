@@ -1,18 +1,25 @@
 import React, { Component } from 'react';
 import {Tile as TileLayer, Vector as VectorLayer} from 'ol/layer.js';
-import {OSM, Vector as VectorSource} from 'ol/source.js';
+import {Cluster, OSM, Vector as VectorSource} from 'ol/source.js';
 import Map from 'ol/Map.js';
 import View from 'ol/View.js';
 import Overlay from 'ol/Overlay.js';
+import Feature from 'ol/Feature';
+import Point from 'ol/geom/Point';
+import {Circle as CircleStyle, Fill, Stroke, Style, Text} from 'ol/style';
+import Select from 'ol/interaction/Select.js';
 
 import UserRequestModal from './UserRequestModal'
+import {EPSG3857_X_MIN, EPSG3857_Y_MIN, EPSG3857_X_MAX, EPSG3857_Y_MAX} from './constants'
 
 import './Home.css'
 import 'ol/ol.css';
+import { runInThisContext } from 'vm';
 
 
 
 export class Home extends Component {
+
   constructor(props){
     super(props)
     this.state = {
@@ -32,6 +39,7 @@ export class Home extends Component {
     this.handleSubmit = this.handleSubmit.bind(this)
     this.fetchData = this.fetchData.bind(this)   
     this.updateOverlays = this.updateOverlays.bind(this) 
+   
   }    
 
 
@@ -39,77 +47,73 @@ export class Home extends Component {
     fetch('api/UserRequest/GetUserRequests')
           .then(response => response.json())
           .then(data => {
-              this.setState({ userRequests: data });    
-              this.updateOverlays()          
-          });
+              this.setState({ userRequests: data }, () =>  {this.updateOverlays()});  
+          })
+          
   }
   
   
   componentDidMount() {    
       
-    // const vectorSource = new VectorSource({
-    //   features: []
-    // });    
-    // const vectorLayer = new VectorLayer({
-    //     source: vectorSource ,            
-    // });   
+    let container = document.getElementById('popup');   
+    var content = document.getElementById('popup-content');
+    let closer = document.getElementById('popup-closer');
 
-    this.map = new Map({        
+    /**
+     * Create an overlay to anchor the popup to the map.
+     */
+    let overlay = new Overlay({
+      element: container,
+      autoPan: true,
+      autoPanAnimation: {
+        duration: 250
+      }
+    });
+
+    /**
+     * Add a click handler to hide the popup.
+     * @return {boolean} Don't follow the href.
+     */
+    closer.onclick = function() {
+      overlay.setPosition(undefined);
+      closer.blur();
+      return false;
+    };
+
+
+    this.clustersLayer = new VectorLayer({})
+    let map = new Map({        
       layers: [
           new TileLayer({
               source: new OSM()
-          })
+          }),
+          this.clustersLayer
       ],               
-      overlays:[],
+      overlays:[overlay],
       target: 'map-container',
       view: new View({
           center:[0,0],
           zoom:2
       })
-    }); 
+    });  
 
-    const context = this
+    const context = this    
 
-    this.map.on('singleclick', function(evt) {    
-      context.handleMapClick(evt.coordinate)    
-    });
-
-    this.fetchData()
-  }
-
-  updateOverlays(){ 
-    //console.log('update-overlays')  
-    //this.map.getOverlays().clear()
-    // for (let i = 0; i < this.state.userRequests.length; ++i){
-    //     let ur = this.state.userRequests[i]
-    //     let element = document.getElementById(`popup-${ur.id}`)
-    //     //console.log(element)
-        
-    //     let overlay = new Overlay({
-    //       element: element,
-    //       autoPan: false,
-    //       // autoPanAnimation: {
-    //       //   duration: 250
-    //       // }
-    //     });
-    //     overlay.setPosition([ur.x, ur.y]);
-    //     this.map.addOverlay(overlay) 
-    // }    
-    // console.log(this.map.getOverlays())
-
-    this.map.getOverlays().clear()
-    for (let i = 0; i < this.state.userRequests.length; ++i){
-      let ur = this.state.userRequests[i]          
-   
-      let root = document.getElementById('component-root')
-      
-      let popup = document.createElement('div')
-      popup.classList.add('ol-popup')
-      popup.onclick = () => {
-        fetch(`api/UserRequest/GetUserRequest/${ur.id}`)
+    map.on('click', function(evt) {   
+      let coordinate = evt.coordinate
+      let featuresCount = 0
+      map.forEachFeatureAtPixel(evt.pixel, function(feature, layer){
+        featuresCount++
+        const innerFeatures = feature.getProperties().features
+        if (innerFeatures.length > 1){
+          content.innerText = "В выбранную область попадает несколько заявок. Приблизьтесь и выберете одну зявку."
+          overlay.setPosition(coordinate)
+        }else{
+          const id = innerFeatures[0].getId()          
+          fetch(`api/UserRequest/GetUserRequest/${id}`)
           .then(response => response.json())
           .then(data => {
-            this.setState({
+            context.setState({
               userName:data.userName, 
               userTel:data.userTel, 
               requestHeader:data.requestHeader, 
@@ -117,26 +121,129 @@ export class Home extends Component {
               isUserRequestFromShown:true,
               isNewUserRequest:false
             })            
-          });        
-      } 
+          });      
+        }        
+      })
       
-      let popupContent = document.createElement('div')
-      popupContent.innerHTML = '<div><code>' + ur.requestHeader +'</code></div>'
+      if (featuresCount === 0){
+        const x = coordinate[0]
+        const correctX = x > 0 ? x % EPSG3857_X_MAX : x % EPSG3857_X_MIN
+        const y = coordinate[1]
+        const correctY = y > 0 ? y % EPSG3857_Y_MAX : y % EPSG3857_Y_MIN
+        context.handleMapClick([correctX, correctY])    
+      }      
+    })
 
-      popup.appendChild(popupContent)        
-      root.appendChild(popup)
-     
-      var overlay = new Overlay({
-        element: popup,
-        autoPan: true,
-        autoPanAnimation: {
-          duration: 250
+    map.on("pointermove", function (evt) {
+        var hit = this.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+            return true;
+        }); 
+        if (hit) {
+            this.getTargetElement().style.cursor = 'pointer';
+        } else {
+            this.getTargetElement().style.cursor = '';
         }
-      });
-      overlay.setPosition([ur.x, ur.y]);
-      this.map.addOverlay(overlay)     
-     
+    })
+
+    this.map = map
+    this.overlay = overlay    
+    this.fetchData()
+  }
+
+  updateOverlays(){ 
+
+    this.map.removeLayer(this.clustersLayer)
+
+    const urFeatures = []
+    for (let i = 0; i < this.state.userRequests.length; ++i){
+      const ur = this.state.userRequests[i]
+      const coordinates = [ur.x, ur.y]
+      const feature = new Feature(new Point(coordinates))
+      feature.setId(ur.id)    
+      urFeatures.push(feature) 
     }
+    const source = new VectorSource({
+      features:urFeatures
+    })
+    const clusterSource = new Cluster({
+      distance:40,
+      source:source
+    })
+
+    var styleCache = {};
+    this.clustersLayer = new VectorLayer({
+      source: clusterSource,
+      style: function(feature) {
+        var size = feature.get('features').length;
+        var style = styleCache[size];
+        if (!style) {
+          style = new Style({
+            image: new CircleStyle({
+              radius: 10,
+              stroke: new Stroke({
+                color: '#fff'
+              }),
+              fill: new Fill({
+                color: '#3399CC'
+              })
+            }),
+            text: new Text({
+              text: size.toString(),
+              fill: new Fill({
+                color: '#fff'
+              })
+            })
+          });
+          styleCache[size] = style;
+        }
+        return style;
+      }
+    });
+    
+    this.map.addLayer(this.clustersLayer)
+    //console.log(this.map.getLayers())
+
+
+    // this.map.getOverlays().clear()
+    // for (let i = 0; i < this.state.userRequests.length; ++i){
+    //   let ur = this.state.userRequests[i]          
+   
+    //   let root = document.getElementById('component-root')
+      
+    //   let popup = document.createElement('div')
+    //   popup.classList.add('ol-popup')
+    //   popup.onclick = () => {
+    //     fetch(`api/UserRequest/GetUserRequest/${ur.id}`)
+    //       .then(response => response.json())
+    //       .then(data => {
+    //         this.setState({
+    //           userName:data.userName, 
+    //           userTel:data.userTel, 
+    //           requestHeader:data.requestHeader, 
+    //           requestBody:data.requestBody, 
+    //           isUserRequestFromShown:true,
+    //           isNewUserRequest:false
+    //         })            
+    //       });        
+    //   } 
+      
+    //   let popupContent = document.createElement('div')
+    //   popupContent.innerHTML = '<div><code>' + ur.requestHeader +'</code></div>'
+
+    //   popup.appendChild(popupContent)        
+    //   root.appendChild(popup)
+     
+    //   var overlay = new Overlay({
+    //     element: popup,
+    //     autoPan: true,
+    //     autoPanAnimation: {
+    //       duration: 250
+    //     }
+    //   });
+    //   overlay.setPosition([ur.x, ur.y]);
+    //   this.map.addOverlay(overlay)     
+     
+    // }
   }  
 
   // handlePopupClick(ev){
@@ -204,7 +311,11 @@ export class Home extends Component {
           handleSubmit={this.handleSubmit} 
           isNewUserRequest={this.state.isNewUserRequest}
         />
-        <div id='map-container'></div>                      
+        <div id='map-container'></div>
+        <div id="popup" className="ol-popup">
+          <a href="#" id="popup-closer" className="ol-popup-closer"></a>
+          <div id="popup-content"></div>
+        </div>                      
       </div>
     );
   }
